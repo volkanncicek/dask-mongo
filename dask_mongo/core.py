@@ -128,6 +128,7 @@ def fetch_mongo(
     database: str,
     collection: str,
     match: dict[str, Any],
+    projection: dict[str, Any],
     id_min: ObjectId,
     id_max: ObjectId,
     include_last: bool,
@@ -135,7 +136,7 @@ def fetch_mongo(
     match2 = {"_id": {"$gte": id_min, "$lte" if include_last else "$lt": id_max}}
     mongo_client = _get_client(connection_kwargs)
     coll = mongo_client[database][collection]
-    return list(coll.aggregate([{"$match": match}, {"$match": match2}]))
+    return list(coll.aggregate([{"$match": match}, {"$match": match2}, {"$project": projection}]))
 
 
 def read_mongo(
@@ -145,6 +146,7 @@ def read_mongo(
     *,
     connection_kwargs: dict[str, Any] = None,
     match: dict[str, Any] = None,
+    projection: dict[str, Any] = None,
 ):
     """Read data from a Mongo database into a Dask Bag.
 
@@ -193,7 +195,7 @@ def read_mongo(
         )
     )
 
-    common_args = (connection_kwargs, database, collection, match)
+    common_args = (connection_kwargs, database, collection, match, projection)
     name = "read_mongo-" + tokenize(common_args, chunksize)
     dsk = {
         (name, i): (
